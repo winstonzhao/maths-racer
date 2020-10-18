@@ -1,6 +1,6 @@
 import { GameHandler } from "./GameManager";
 import { GameUpdate, Player, Question, Response, ResponseType } from "./Types";
-import { getRandomOperation } from "../../common";
+import { getRandomOperation } from "common/lib/lib";
 
 export enum GameState {
   NOT_STARTED,

@@ -5,9 +5,9 @@ import {
   getRandomOperation,
   generateQuestion,
   generateDisplayString,
-} from "../../util/util";
+  Operation
+} from "common/lib/lib";
 import "./tester.scss";
-import { Operation } from "../../model/model";
 
 export class TesterStore {
   displayString = "";
