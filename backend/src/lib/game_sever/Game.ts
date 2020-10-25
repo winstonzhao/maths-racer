@@ -2,8 +2,14 @@ import { GameHandler } from "./GameManager";
 import { GameUpdate, Player, Response, ResponseType } from "./Types";
 import {
   Equation,
+  GameAnswer,
+  GameEndSummary,
+  GAME_DURATION_MILLIS,
   generateQuestion,
   getRandomOperation,
+  NUM_QUESTIONS,
+  PlayerInfo,
+  PRESTART_TIME_MILLIS,
   range,
 } from "../common/lib";
 
@@ -11,19 +17,24 @@ export enum GameState {
   NOT_STARTED,
   PRE_START,
   IN_PROGRESS,
-  PRE_END,
   END,
 }
 
-export interface GameListener {}
+export interface GameListener {
+  onGamePrestart: (startTime: number) => void;
+  onGameStart: () => void;
+  onAnswer: (answer: GameAnswer) => void;
+  onAddPlayer: (info: PlayerInfo) => void;
+  onRemovePlayer: (id: number) => void;
+  onGameEnd: (summary: GameEndSummary) => void;
+}
 
 export class Game {
-  NUM_QUESTIONS = 100;
-
+  listeners: GameListener[] = [];
   playersMap: { [playerId: number]: Player } = {};
   state = GameState.NOT_STARTED;
   startTime = 0;
-  questions: Equation[] = range(100).map(() =>
+  questions: Equation[] = range(NUM_QUESTIONS).map(() =>
     generateQuestion(getRandomOperation(), 100, 1, 100, 1)
   );
   playerQuestionIndex: { [playerId: number]: number } = {};
@@ -37,6 +48,9 @@ export class Game {
 
     this.playerQuestionIndex[player.id] = 0;
     this.playersMap[player.id] = player;
+
+    this.tellAllListeners((l) => l.onAddPlayer(player));
+
     return true;
   }
 
@@ -45,6 +59,8 @@ export class Game {
       delete this.playersMap[playerId];
       return true;
     }
+
+    this.tellAllListeners((l) => l.onRemovePlayer(playerId));
 
     return false;
   }
@@ -56,7 +72,7 @@ export class Game {
 
     const questionIndex = this.playerQuestionIndex[update.playerId];
 
-    if (questionIndex >= this.questions.length) {
+    if (questionIndex >= this.questions.length || this.state == GameState.END) {
       return new Response(ResponseType.GAME_FINISHED);
     }
 
@@ -67,15 +83,39 @@ export class Game {
       const newQuestionIndex = this.playerQuestionIndex[update.playerId];
 
       if (newQuestionIndex === this.questions.length) {
-        this.state = GameState.PRE_END;
+        this.state = GameState.END;
+
+        this.tellAllListeners((l) =>
+          l.onGameEnd({
+            winnerIds: [update.playerId],
+            scores: this.playerQuestionIndex,
+          })
+        );
+
         return new Response(ResponseType.PLAYER_WON);
       }
+
+      this.tellAllListeners((l) =>
+        l.onAnswer({
+          playerId: update.playerId,
+          correct: true,
+          questionIdx: newQuestionIndex,
+        })
+      );
 
       return new Response(
         ResponseType.ANSWER_CORRECT,
         this.questions[newQuestionIndex]
       );
     }
+
+    this.tellAllListeners((l) =>
+      l.onAnswer({
+        playerId: update.playerId,
+        correct: false,
+        questionIdx: questionIndex,
+      })
+    );
 
     return new Response(ResponseType.ANSWER_INCORRECT);
   }
@@ -85,16 +125,39 @@ export class Game {
   }
 
   isFinished() {
-    return true;
+    return this.state === GameState.END;
   }
 
   start() {
     this.state = GameState.PRE_START;
     this.startTime = new Date().valueOf();
-    setTimeout(() => {
-      this.state = GameState.IN_PROGRESS;
-    }, 5000);
+    this.tellAllListeners((l) => l.onGamePrestart(this.startTime));
+
+    setTimeout(
+      () => (this.state = GameState.IN_PROGRESS),
+      PRESTART_TIME_MILLIS
+    );
+
+    setTimeout(() => this.finish(), GAME_DURATION_MILLIS);
   }
 
-  finish() {}
+  finish() {
+    const max = Math.max(...Object.values(this.playerQuestionIndex));
+    const winnerIds: number[] = [];
+    const keys = (Object.keys(this.playerQuestionIndex) as unknown) as number[];
+
+    keys.forEach((key) => {
+      if (this.playerQuestionIndex[key] === max) {
+        winnerIds.push(key);
+      }
+    });
+
+    this.tellAllListeners((l) =>
+      l.onGameEnd({ winnerIds, scores: this.playerQuestionIndex })
+    );
+  }
+
+  tellAllListeners(ev: (listener: GameListener) => void) {
+    this.listeners.forEach(ev);
+  }
 }

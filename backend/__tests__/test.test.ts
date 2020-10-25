@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { NUM_QUESTIONS } from "../src/lib/common/lib";
 import { Game } from "../src/lib/game_sever/Game";
 import { GameManager } from "../src/lib/game_sever/GameManager";
 import { ResponseType } from "../src/lib/game_sever/Types";
@@ -27,5 +28,11 @@ test("test start game", () => {
   expect(jResp.type == ResponseType.SUCCESS);
   expect(game.getPlayerCount() === 2);
 
-  expect(game.questions.length === game.NUM_QUESTIONS);
+  expect(game.questions.length === NUM_QUESTIONS);
+
+  let aResp = game.updateGame({
+    answer: game.questions[0].answer,
+    playerId: winston.id,
+  });
+  expect(aResp.type == ResponseType.ANSWER_CORRECT);
 });
