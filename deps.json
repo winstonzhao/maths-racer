@@ -1,0 +1,18 @@
+{
+  "deps": {
+    "common": {
+      "path": "./common/lib",
+      "alias": "common"
+    }
+  },
+  "packages": {
+    "backend": {
+      "depPath": "./backend/src/lib",
+      "deps": ["common"]
+    },
+    "frontend": {
+      "depPath": "./frontend/src/lib",
+      "deps": ["common"]
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { Operation } from "../model/model";
+import { Equation, Operation } from "../model/model";
 
 export const getRandomInt = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -25,26 +25,42 @@ export const generateQuestion = (
   min = 1,
   max2 = max,
   min2 = 1
-) => {
+): Equation => {
   let firstNumber = getRandomInt(min, max);
   let secondNumber = getRandomInt(min2, max2);
   switch (operation) {
     case Operation.Plus:
-      return [firstNumber, secondNumber, firstNumber + secondNumber];
+      return new Equation(
+        operation,
+        firstNumber,
+        secondNumber,
+        firstNumber + secondNumber
+      );
     case Operation.Minus:
       const tmpFirstNumber = Math.max(firstNumber, secondNumber);
       const tmpSecondNumber = Math.min(firstNumber, secondNumber);
-      return [
+      return new Equation(
+        operation,
         tmpFirstNumber,
         tmpSecondNumber,
-        tmpFirstNumber - tmpSecondNumber,
-      ];
+        tmpFirstNumber - tmpSecondNumber
+      );
     case Operation.Multiply:
-      return [firstNumber, secondNumber, firstNumber * secondNumber];
+      return new Equation(
+        operation,
+        firstNumber,
+        secondNumber,
+        firstNumber * secondNumber
+      );
     case Operation.Divide:
       secondNumber = [firstNumber, secondNumber][getRandomInt(0, 1)];
       firstNumber = firstNumber * secondNumber;
-      return [firstNumber, secondNumber, firstNumber / secondNumber];
+      return new Equation(
+        operation,
+        firstNumber,
+        secondNumber,
+        firstNumber / secondNumber
+      );
   }
 };
 

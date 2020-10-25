@@ -6,7 +6,7 @@ import {
   generateQuestion,
   generateDisplayString,
   Operation
-} from "common/lib/lib";
+} from "../../lib/common/lib";
 import "./tester.scss";
 
 export class TesterStore {
@@ -44,19 +44,19 @@ export class TesterStore {
       min2 = 10;
     }
 
-    const [firstNumber, secondNumber, answer] = generateQuestion(
+    const eq = generateQuestion(
       operation,
       max1,
       min1,
       max2,
       min2
     );
-    this.firstNumber = firstNumber;
-    this.secondNumber = secondNumber;
-    this.answer = answer;
+    this.firstNumber = eq.firstNumber;
+    this.secondNumber = eq.secondNumber;
+    this.answer = eq.answer;
     this.displayString = generateDisplayString(
-      firstNumber,
-      secondNumber,
+      eq.firstNumber,
+      eq.secondNumber,
       operation
     );
   }
