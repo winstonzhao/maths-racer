@@ -1,5 +1,5 @@
 import WebSocket, { Server } from "ws";
-import { JoinMesasge, Type, WssMessage } from "../types/wss";
+import { JoinMesasge, Type, WssMessage } from "../common/proto/wss";
 
 export class WebSocketServer {
   server: Server;
@@ -38,9 +38,12 @@ export class WebSocketServer {
     });
   }
 
-  handleJoin(id: number, conn: WebSocket, msg: JoinMesasge) {}
+  handleJoin(id: number, conn: WebSocket, msg: JoinMesasge) {
+    conn.send("my name jeff");
+  }
 
   routeMessage(id: number, conn: WebSocket, data: WebSocket.Data) {
+    conn.send("my name jeff");
     try {
       const message: WssMessage = JSON.parse(data as string);
       if (!message.type) {

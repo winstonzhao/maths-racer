@@ -3,8 +3,9 @@ import { NUM_QUESTIONS } from "../src/lib/common/lib";
 import { Game } from "../src/lib/game_sever/Game";
 import { GameManager } from "../src/lib/game_sever/GameManager";
 import { ResponseType } from "../src/lib/game_sever/Types";
+import { WebSocketServer } from "../src/lib/connectivity/WebSocketSever";
 
-test("test start game", () => {
+test("test game", () => {
   const gameManager = new GameManager();
   let pResp = gameManager.addPlayer("Winston");
   expect(pResp.type === ResponseType.SUCCESS);
