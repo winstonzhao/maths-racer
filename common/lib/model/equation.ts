@@ -26,7 +26,7 @@ export interface PlayerInfo {
 }
 
 export interface GameEndSummary {
-  winnerId: number;
+  winnerIds: number[];
   scores: { [playerId: number]: number };
 }
 
