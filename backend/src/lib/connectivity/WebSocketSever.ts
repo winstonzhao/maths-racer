@@ -1,12 +1,24 @@
 import WebSocket, { Server } from "ws";
-import { JoinMesasge, Type, WssMessage } from "../common/proto/wss";
+import { Logger } from "../common/logger/logger";
+import {
+  Codes,
+  RegisterRequest,
+  RegisterResponse,
+  Type,
+  WssMessage,
+} from "../common/proto/wss";
+import { GameServer } from "../game_sever/GameServer";
+
+const logger = Logger.create("WSS");
 
 export class WebSocketServer {
   server: Server;
   idCounter = 0;
   connections: { [id: number]: WebSocket } = {};
+  connToUserId: { [connId: number]: number } = {};
 
-  constructor(port: number) {
+  constructor(port: number, private gameServer: GameServer) {
+    console.log(`Listening on port: ${port}`);
     this.server = new Server({
       port,
       perMessageDeflate: {
@@ -32,35 +44,54 @@ export class WebSocketServer {
 
     this.server.addListener("connection", (conn) => {
       this.connections[++this.idCounter] = conn;
+      logger.log(`New Connection with ID: ${this.idCounter}`);
       conn.addListener("message", (data) =>
         this.routeMessage(this.idCounter, conn, data)
       );
     });
   }
 
-  handleJoin(id: number, conn: WebSocket, msg: JoinMesasge) {
-    conn.send("my name jeff");
+  handleRegister(id: number, conn: WebSocket, message: RegisterRequest) {
+    const userId = this.gameServer.register(message.username);
+
+    if (!userId) {
+      conn.send(JSON.stringify(new RegisterResponse(Codes.UNKNOWN_ERROR)));
+      logger.log(
+        `Unknown error while registering for connection id=${id}, registerMsg=${JSON.stringify(
+          message
+        )}`
+      );
+      return;
+    }
+
+    this.connToUserId[id] = userId;
+    conn.send(JSON.stringify(new RegisterResponse(Codes.OK)));
+    logger.log(
+      `Handled register for connection=${id} user=${userId} username=${message.username}`
+    );
   }
 
   routeMessage(id: number, conn: WebSocket, data: WebSocket.Data) {
-    conn.send("my name jeff");
     try {
       const message: WssMessage = JSON.parse(data as string);
       if (!message.type) {
-        // LOG
+        logger.log(`Parsed message contains no type: ${message}`, "Warning");
         return;
       }
 
       switch (message.type) {
+        case Type.REGISTER:
+          this.handleRegister(id, conn, message as RegisterRequest);
+          return;
         case Type.JOIN:
-          this.handleJoin(id, conn, message as JoinMesasge);
-          break;
+          // this.handleJoin(id, conn, message as JoinMesasge);
+          return;
       }
 
-      // LOG
+      logger.log(`Unknown message type: ${message.type}`, "Warning");
       return;
     } catch {
-      // LOG
+      logger.log(`Unable to parse message: ${data}`, "Warning");
     }
   }
 }
