@@ -1,5 +1,5 @@
 import { GameHandler } from "./GameManager";
-import { GameUpdate, Player, Response, ResponseType } from "./Types";
+import { GameUpdate, Player } from "./Types";
 import {
   Equation,
   GameAnswer,
@@ -12,6 +12,7 @@ import {
   PRESTART_TIME_MILLIS,
   range,
 } from "../common/lib";
+import { ResponseType, Response } from "../common/proto/wss";
 
 export enum GameState {
   NOT_STARTED,

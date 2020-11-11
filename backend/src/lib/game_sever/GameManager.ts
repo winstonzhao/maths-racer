@@ -1,5 +1,6 @@
+import { ResponseType, Response } from "../common/proto/wss";
 import { Game } from "./Game";
-import { GameUpdate, Player, Response, ResponseType } from "./Types";
+import { GameUpdate, Player } from "./Types";
 
 export interface GameHandler {}
 
@@ -11,23 +12,13 @@ export class GameManager implements GameHandler {
   gameFactory = new GameFactory();
 
   addPlayer(name: string) {
+    if (!name || name.length < 5) {
+      return new Response(ResponseType.NAME_TOO_SHORT);
+    }
+
     const player = this.playerFactory.createPlayer(name);
     this.players[player.id] = player;
     return new Response(ResponseType.SUCCESS, player);
-  }
-
-  removePlayer(id: number): Response {
-    if (id in this.players) {
-      delete this.players[id];
-    } else {
-      return new Response(ResponseType.PLAYER_MISSING);
-    }
-
-    if (id in this.gamesByPlayer) {
-      delete this.gamesByPlayer[id];
-    }
-
-    return new Response(ResponseType.SUCCESS);
   }
 
   createGame(playerId: number): Response {

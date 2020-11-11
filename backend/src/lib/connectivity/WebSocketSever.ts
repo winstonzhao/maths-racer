@@ -1,12 +1,14 @@
 import WebSocket, { Server } from "ws";
 import { Logger } from "../common/logger/logger";
 import {
-  Codes,
+  CreateGameRequest,
+  CreateGameResponse,
   RegisterRequest,
   RegisterResponse,
   Type,
   WssMessage,
 } from "../common/proto/wss";
+import { GameManager } from "../game_sever/GameManager";
 import { GameServer } from "../game_sever/GameServer";
 
 const logger = Logger.create("WSS");
@@ -17,7 +19,7 @@ export class WebSocketServer {
   connections: { [id: number]: WebSocket } = {};
   connToUserId: { [connId: number]: number } = {};
 
-  constructor(port: number, private gameServer: GameServer) {
+  constructor(port: number, private gameServer: GameManager) {
     console.log(`Listening on port: ${port}`);
     this.server = new Server({
       port,
@@ -52,10 +54,11 @@ export class WebSocketServer {
   }
 
   handleRegister(id: number, conn: WebSocket, message: RegisterRequest) {
-    const userId = this.gameServer.register(message.username);
+    const resp = this.gameServer.addPlayer(message.username);
+    const userId = resp.info?.id;
+    conn.send(JSON.stringify(new RegisterResponse(resp.type, message.tag)));
 
     if (!userId) {
-      conn.send(JSON.stringify(new RegisterResponse(Codes.UNKNOWN_ERROR)));
       logger.log(
         `Unknown error while registering for connection id=${id}, registerMsg=${JSON.stringify(
           message
@@ -65,9 +68,15 @@ export class WebSocketServer {
     }
 
     this.connToUserId[id] = userId;
-    conn.send(JSON.stringify(new RegisterResponse(Codes.OK)));
     logger.log(
       `Handled register for connection=${id} user=${userId} username=${message.username}`
+    );
+  }
+
+  handleCreateGame(id: number, conn: WebSocket, req: CreateGameRequest) {
+    const resp = this.gameServer.createGame(id);
+    conn.send(
+      JSON.stringify(new CreateGameResponse(resp.type, req.tag, resp.info?.id))
     );
   }
 
@@ -85,6 +94,9 @@ export class WebSocketServer {
           return;
         case Type.JOIN:
           // this.handleJoin(id, conn, message as JoinMesasge);
+          return;
+        case Type.CREATE_GAME:
+          this.handleCreateGame(id, conn, message as CreateGameRequest);
           return;
       }
 

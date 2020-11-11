@@ -24,6 +24,7 @@ class WssClient {
         });
         this.ws.on("message", (data) => {
             logger.log(`Got data: ${data}`);
+            this.handleMessage(data);
         });
     }
     waitForConnect() {
@@ -41,14 +42,28 @@ class WssClient {
                 logger.log(`Parsed message contains no type: ${message}`, "Warning");
                 return;
             }
+            if (!this.reqsInFlight[message.tag]) {
+                logger.log(`Cannot find in-flight request for tag: ${message.tag}`);
+                return;
+            }
+            const { res, _ } = this.reqsInFlight[message.tag];
             switch (message.type) {
                 case wss_1.Type.REGISTER_RESPONSE:
-                    if (message.code === wss_1.Codes.OK) {
+                    if (message.code === wss_1.ResponseType.SUCCESS) {
+                        res(wss_1.ResponseType.SUCCESS);
                         logger.log("Register OK!");
                     }
                     break;
+                case wss_1.Type.CREATE_GAME_RESPONSE:
+                    if (message.code ===
+                        wss_1.ResponseType.SUCCESS) {
+                        const resp = message;
+                        res(wss_1.ResponseType.SUCCESS);
+                        logger.log(`Game created, gameId=${resp.gameId}`);
+                    }
+                default:
+                    logger.log(`Unknown message type: ${message.type}`, "Warning");
             }
-            logger.log(`Unknown message type: ${message.type}`, "Warning");
             return;
         }
         catch (_a) {
@@ -56,8 +71,25 @@ class WssClient {
         }
     }
     register(username) {
-        const msg = { type: wss_1.Type.REGISTER, username };
+        const msg = {
+            type: wss_1.Type.REGISTER,
+            username,
+            tag: ++this.reqIdCounter,
+        };
         this.ws.send(JSON.stringify(msg));
+        return new Promise((res, rej) => {
+            this.reqsInFlight[this.reqIdCounter] = { res, rej };
+        });
+    }
+    createGame() {
+        const msg = {
+            type: wss_1.Type.CREATE_GAME,
+            tag: ++this.reqIdCounter,
+        };
+        this.ws.send(JSON.stringify(msg));
+        return new Promise((res, rej) => {
+            this.reqsInFlight[this.reqIdCounter] = { res, rej };
+        });
     }
 }
 exports.WssClient = WssClient;

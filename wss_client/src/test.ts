@@ -4,5 +4,7 @@ import { WssClient } from "./client";
   const client = new WssClient("localhost", 8080);
   await client.waitForConnect();
 
-  client.register("Winston");
+  await client.register("Winston");
+
+  await client.createGame();
 })();
